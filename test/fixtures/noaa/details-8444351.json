@@ -1,0 +1,29 @@
+{
+  "count": 1,
+  "units": null,
+  "stations": [
+    {
+      "state": "MA",
+      "tidepredoffsets": {
+        "self": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8444351/tidepredoffsets.json"
+      },
+      "type": "S",
+      "timemeridian": -75,
+      "reference_id": "8443970",
+      "timezonecorr": -5,
+      "id": "8444351",
+      "name": "Hull",
+      "lat": 42.3033,
+      "lng": -70.92,
+      "affiliations": "",
+      "portscode": "",
+      "products": null,
+      "disclaimers": null,
+      "notices": null,
+      "self": null,
+      "expand": null,
+      "tideType": ""
+    }
+  ],
+  "self": null
+}

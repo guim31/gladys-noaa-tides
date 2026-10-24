@@ -1,77 +1,74 @@
+// -----------------------------------------------------------------------------
+// The `next_tides` widget: valid for the core (SDK validator, budget), bound to
+// features the device really has, and its empty and "gone" states.
+// -----------------------------------------------------------------------------
+
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { validateWidgetContent } from '@gladysassistant/integration-sdk';
-import { createFakeGladys } from '@gladysassistant/integration-sdk/testing';
-import { buildDiscoveredDevices } from '../src/devices/index.js';
-import { simulateLanSession } from '../src/devices/plug.js';
-import { DEMO_STATUS_WIDGET, WIDGETS, refreshWidgets } from '../src/widgets.js';
-import { normalizeConfig } from '../src/config.js';
+import { BATTERY, BOSTON, HULL, create, createWorld, tick } from './helpers/world.js';
 
-const gladys = createFakeGladys();
-const config = normalizeConfig();
-const demoStatus = WIDGETS[DEMO_STATUS_WIDGET];
+const get = async (world, settings = {}, language = 'en') => {
+  const ack = await world.fake.widgetGet('next_tides', { settings, language });
+  assert.equal(ack.success, true);
+  return ack.data.content;
+};
+const ofType = (content, type) => content.components.filter((c) => c.type === type);
 
-// What the SDK passes to onWidgetGet, plus the config index.js adds.
-const getContent = (cfg = config) =>
-  demoStatus.get(gladys, { settings: {}, language: 'en', units: 'metric', config: cfg });
-
-test('the demo_status content is rendered exactly as sent', async () => {
-  // [] = nothing the core would drop, truncate or trim to the content budget.
-  assert.deepEqual(validateWidgetContent(await getContent()), []);
-});
-
-test('the degraded plug connection content is valid too', async () => {
-  simulateLanSession(false);
-  try {
-    const content = await getContent();
+for (const language of ['en', 'fr', 'de', 'es']) {
+  test(`a station: tiles, curve with its tides, next tides, within the budget (${language})`, async (t) => {
+    const world = await createWorld({ config: { stations: `${BATTERY}, ${HULL}` } });
+    t.after(() => world.app.stop());
+    const device = await create(world, BATTERY);
+    const content = await get(world, { station: device.external_id }, language);
     assert.deepEqual(validateWidgetContent(content), []);
-    const status = content.components.find((component) => component.type === 'status');
+    assert.ok(content.components.length <= 8);
+    assert.ok(ofType(content, 'text').length <= 2);
+    const ids = new Set(device.features.map((feature) => feature.external_id));
+    const tiles = ofType(content, 'value');
+    assert.equal(tiles.length, 3, 'predicted, observed, water temperature');
+    for (const tile of tiles) {
+      assert.ok(ids.has(tile.device_feature), tile.device_feature);
+    }
+    const [chart] = ofType(content, 'chart');
+    assert.ok(chart.series[0].points.length > 100 && chart.series[0].points.length <= 300);
+    assert.ok(chart.annotations.length >= 3 && chart.annotations.length <= 8);
     assert.ok(
-      status.items.some((item) => item.color === 'warning'),
-      'degraded shows a warning',
+      chart.annotations.every((a) => a.label.length <= 16),
+      JSON.stringify(chart.annotations),
     );
-  } finally {
-    simulateLanSession(true);
-  }
+    assert.equal(chart.now_marker, true);
+    const [status] = ofType(content, 'status');
+    assert.equal(status.items.length, 5, 'four tides and the alert level');
+    assert.ok(status.items.every((item) => item.value.length <= 40));
+    const [button] = ofType(content, 'button');
+    assert.equal(
+      button.link.url,
+      `https://tidesandcurrents.noaa.gov/noaatidepredictions.html?id=${BATTERY}`,
+    );
+  });
+}
+
+test('without a setting: the first created station; a subordinate station has one tile', async (t) => {
+  const world = await createWorld({ config: { stations: `${HULL}, ${BOSTON}` } });
+  t.after(() => world.app.stop());
+  const empty = await get(world);
+  assert.match(empty.components[0].text, /No station followed yet/);
+  await create(world, HULL);
+  assert.ok(world.fake.widgetRefreshes.includes('next_tides'), 'refreshed at creation');
+  const content = await get(world);
+  assert.deepEqual(validateWidgetContent(content), []);
+  assert.match(content.components[0].text, /^Hull/);
+  assert.equal(ofType(content, 'value').length, 1);
+  assert.equal(ofType(content, 'status')[0].items.length, 4, 'no alert level at Hull');
 });
 
-test('the live tiles reference features the integration publishes', async () => {
-  const featureIds = new Set(
-    buildDiscoveredDevices(gladys, config).flatMap((device) =>
-      device.features.map((feature) => feature.external_id),
-    ),
-  );
-  const liveTiles = (await getContent()).components.filter((c) => c.device_feature);
-  assert.ok(liveTiles.length > 0, 'the template demonstrates a device-bound tile');
-  for (const tile of liveTiles) {
-    assert.ok(featureIds.has(tile.device_feature), `unknown feature ${tile.device_feature}`);
-  }
-});
-
-test('every button action of the content is handled and answers a short toast', async () => {
-  const buttons = (await getContent()).components.filter((c) => c.type === 'button' && c.action);
-  assert.ok(buttons.length > 0, 'the template demonstrates a widget action');
-  for (const { action } of buttons) {
-    const message = await demoStatus.action(gladys, {
-      actionKey: action.key,
-      params: action.params ?? {},
-      settings: {},
-      config,
-    });
-    assert.ok(message.en, 'the toast carries at least the mandatory `en` text');
-    assert.ok(message.en.length <= 200, 'toasts are capped at 200 characters');
-  }
-});
-
-test('an unknown widget action fails, so the user sees the error', async () => {
-  await assert.rejects(
-    demoStatus.action(gladys, { actionKey: 'unknown', params: {}, settings: {}, config }),
-    /Unknown widget action/,
-  );
-});
-
-test('refreshWidgets nudges every widget', () => {
-  const fresh = createFakeGladys();
-  refreshWidgets(fresh);
-  assert.deepEqual(fresh.fake.widgetRefreshes, Object.keys(WIDGETS));
+test('a station no longer followed', async (t) => {
+  const world = await createWorld({ config: { stations: BOSTON } });
+  t.after(() => world.app.stop());
+  const device = await create(world, BOSTON);
+  await world.fake.configUpdated({ stations: HULL });
+  await tick(world, 1);
+  const content = await get(world, { station: device.external_id });
+  assert.equal(content.components[0].text, 'This station is no longer followed.');
 });

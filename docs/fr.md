@@ -1,67 +1,163 @@
-# Template de démonstration
+# NOAA Tides
 
-Ceci est la documentation utilisateur de l'intégration. Gladys ré-héberge ce
-fichier et affiche un lien **Documentation** permanent vers lui dans l'écran
-de configuration (dans la langue de l'utilisateur, avec l'anglais en repli) —
-c'est au moment de configurer que l'utilisateur en a le plus besoin. Gardez
-les courtes indications d'accueil dans les blocs `section` du `config_schema`
-du manifest ; mettez ici le pas-à-pas détaillé (captures d'écran, dépannage…).
+Apporte dans Gladys les **prédictions de marée de la NOAA** (CO-OPS, Tides & Currents), aux 3 500
+stations de marée des **États-Unis** et de leurs territoires : prochaines pleines et basses mers,
+hauteur d'eau prédite maintenant, marée montante ou descendante et, quand la station les mesure,
+la hauteur d'eau observée et la température de l'eau. Pas de compte, pas de clé.
+
+Pour les ports de France, utilisez l'intégration **Marées France** de William-De71 : celle-ci est
+son pendant pour les États-Unis, avec les mêmes fonctionnalités autant que la NOAA le permet.
+
+> **Pas pour la navigation.** Les prédictions sont astronomiques : le vent, la pression et le débit
+> des fleuves peuvent écarter nettement la hauteur réelle. L'intégration dépend de votre Gladys, de
+> votre accès à Internet et d'un service public. Utilisez les produits officiels de la NOAA et les
+> alertes du National Weather Service pour tout ce qui compte. Intégration non affiliée à la NOAA.
 
 ## Ce que vous obtenez
 
-Six appareils de démonstration apparaissent après l'installation : une
-station météo (vraies données Open-Meteo), un interrupteur, une lampe
-variable, une prise connectée avec mesure de puissance, un détecteur de
-mouvement et une caméra.
+- **Un appareil par station** suivie, nommé « Marée <station> » : la **hauteur prédite**
+  maintenant, la **marée** (montante ou descendante), la **prochaine marée** en phrase (« Pleine
+  mer à 17:39 (1,80 m) »), les **minutes avant la prochaine pleine mer** et **avant la prochaine
+  basse mer**, et leurs **hauteurs**.
+- Aux stations qui les mesurent : la **hauteur d'eau mesurée** (toutes les 6 minutes) et la
+  **température de l'eau**.
+- Hauteurs au-dessus de **MLLW** (Mean Lower Low Water, le zéro des cartes marines américaines),
+  en **mètres ou en pieds** ; températures en °C ou °F.
+- Deux **déclencheurs de scène** : une pleine ou basse mer (à son heure ou jusqu'à 6 heures avant),
+  et une pleine mer au-dessus d'un **seuil d'alerte** (le vôtre, ou le seuil de crue mineure de la
+  NOAA pour la station), jusqu'à 24 heures avant.
+- Une **action de scène** qui donne la prochaine marée aux actions suivantes (heure, hauteur,
+  phrase).
+- Un **widget de tableau de bord** : la courbe de marée du jour avec ses pleines et basses mers,
+  les quatre prochaines marées et les hauteurs en direct.
+- Un bouton **« Chercher des stations »** : les stations près de votre maison, près d'un point,
+  par nom ou par numéro.
+
+## Prérequis
+
+- Gladys Assistant **5.1.0** ou plus récent (widget, déclencheurs et action de scène).
+- Un accès à Internet de Gladys vers `api.tidesandcurrents.noaa.gov`.
+- La position de votre maison dans Gladys, seulement pour « Chercher des stations » sans texte.
 
 ## Configuration
 
-1. Ouvrez l'onglet **Configuration** de l'intégration.
-2. Renseignez la **latitude** et la **longitude** que la station météo de
-   démonstration doit observer (Paris par défaut), et choisissez votre unité
-   de température. L'**intervalle de rafraîchissement** règle la fréquence
-   de lecture de la station météo et de la puissance de la prise : toutes
-   les 5 minutes par défaut, toutes les minutes au plus.
-3. Enregistrez : les appareils apparaissent dans l'onglet **Découverte**,
-   prêts à être ajoutés.
+### Réglages
 
-Le réglage **Préférer la connexion locale** pilote la prise de
-démonstration : elle affiche en badge le canal réellement utilisé (local ou
-cloud), avec un point orange quand elle fonctionne en mode dégradé (local
-refusé, bascule cloud).
+- **Stations** : numéros ou noms des stations, séparés par des virgules, 10 au plus. Un numéro
+  (9414290) est exact. Un nom (« Boston », « San Francisco ») prend la station correspondante, une
+  station de référence d'abord. Une page de tidesandcurrents.noaa.gov avec `?id=` fonctionne
+  aussi.
+- **Unités** : mètres et °C (par défaut) ou pieds et °F. Gladys fige l'unité d'une fonctionnalité
+  à la création de l'appareil : après un changement, cliquez sur **Mettre à jour** sur les
+  appareils dans l'onglet Découverte.
+- **Seuils d'alerte des pleines mers** : pour le déclencheur « Pleine mer au-dessus du seuil »,
+  dans les unités ci-dessus, au-dessus de MLLW. Un seuil pour toutes les stations (`2,1`), un par
+  station (`9414290=2,1 ; 8443970=3,6`), ou les deux. Vide : le **seuil de crue mineure de la
+  NOAA** pour la station, quand elle en a un (stations marégraphiques).
+- **Langue des textes** : des noms d'appareils et de fonctionnalités (figés à la création) et des
+  textes envoyés aux scènes. Français par défaut.
 
-## Actions
+Enregistrez, ouvrez l'onglet **Découverte** et créez les appareils voulus.
 
-- **Tester le fournisseur météo** — effectue une requête en direct vers
-  Open-Meteo et affiche la température et l'humidité actuelles sous le
-  bouton.
-- **Identifier un appareil** — choisissez un de vos appareils dans la liste
-  et il se signale (la lampe de démonstration « clignote » dans les logs).
+### Trouver vos stations
 
-## Scènes
+Le bouton **Chercher des stations** liste jusqu'à 10 stations avec leur numéro, leur État, leur
+distance et leur type :
 
-L'intégration ajoute ses propres cartes à l'éditeur de scènes (Gladys 5.1
-ou plus récent), dans la catégorie **Intégrations** :
+- laissez le champ **vide** pour les stations les plus proches de votre maison ;
+- tapez une **latitude et une longitude** (`37.8, -122.47`) pour les stations les plus proches de
+  ce point ;
+- tapez un **nom**, avec son État si besoin (`Sausalito CA`), ou un **numéro**.
 
-- **Mouvement détecté** (déclencheur) — lance la scène quand un détecteur
-  de démonstration voit bouger quelque chose. Choisissez éventuellement le
-  détecteur et ce qui a bougé (personne, animal) ; laissés vides, toute
-  détection correspond. Les actions suivantes peuvent lire ce qui a bougé
-  avec `{{triggerEvent.data.target}}`.
-- **Identifier un appareil** (action) — fait se signaler l'appareil choisi.
-  Elle indique si l'appareil a pu se signaler, pour que les actions
-  suivantes puissent en dépendre.
+Une **station de référence** a la courbe complète toutes les 6 minutes. Une **station secondaire**
+n'a que ses pleines et basses mers (décalages d'une station de référence) : sa hauteur entre deux
+est calculée par l'interpolation en cosinus des annuaires de marée, à quelques centimètres près.
 
-## Tableau de bord
+## Appareils
 
-Ajoutez le widget **État de la démo** à un tableau de bord : il affiche en
-direct la température de la station météo et la puissance de la prise du
-bureau, la connexion utilisée par la prise (en orange si dégradée) et la
-position observée. Son bouton **Identifier la lampe** fait se signaler la
-lampe de démonstration.
+| Fonctionnalité                     | Type        | Remarques                                                    |
+| ---------------------------------- | ----------- | ------------------------------------------------------------ |
+| Hauteur prédite                    | niveau      | maintenant, courbe des stations de référence, sinon calculée |
+| Marée                              | texte       | Montante / Descendante                                       |
+| Prochaine marée                    | texte       | « Pleine mer à 17:39 (1,80 m) »                              |
+| Prochaine pleine mer dans          | durée       | minutes                                                      |
+| Hauteur de la prochaine pleine mer | niveau      |                                                              |
+| Prochaine basse mer dans           | durée       | minutes                                                      |
+| Hauteur de la prochaine basse mer  | niveau      |                                                              |
+| Hauteur d'eau mesurée              | niveau      | stations à marégraphe actif, toutes les 6 minutes            |
+| Température de l'eau               | température | stations à capteur de température de l'eau actif             |
+
+Les états sont rafraîchis chaque minute par l'intégration elle-même (les comptes à rebours
+avancent chaque minute). Une mesure de plus d'une heure (trois pour la température) n'est pas
+renvoyée. Les heures sont données dans le fuseau de votre Gladys, quel que soit celui de la
+station.
+
+## Widget de tableau de bord
+
+**Prochaines marées** : pour la station choisie dans ses réglages (ou la première créée), la
+hauteur prédite et les valeurs mesurées en tuiles en direct, la courbe de 2 heures avant à 22
+heures après avec ses pleines et basses mers et un repère « maintenant », les quatre prochaines
+marées, le seuil d'alerte du déclencheur de pleine mer, et un lien vers la page de la station sur
+Tides & Currents.
+
+## Déclencheurs de scène
+
+- **Marée : pleine ou basse mer** : choisissez la station, pleine mer, basse mer ou les deux, et
+  quand : à l'heure de la marée, ou 15, 30, 45 minutes, 1, 1,5, 2, 3, 4 ou 6 heures avant. La scène
+  reçoit la station, la marée, son heure, sa hauteur, l'unité et une phrase toute prête.
+- **Marée : pleine mer au-dessus du seuil** : une pleine mer prédite atteint le seuil d'alerte de
+  la configuration (ou le seuil de crue mineure de la NOAA) : à son heure, ou de 30 minutes à 24
+  heures avant. La scène reçoit aussi le seuil.
+
+Un seuil sur la hauteur mesurée n'a pas besoin de déclencheur : utilisez la condition de Gladys
+« la valeur d'un appareil dépasse » sur la fonctionnalité **Hauteur d'eau mesurée**.
+
+## Action de scène
+
+**Marée : obtenir la prochaine marée** : pour une station, la prochaine pleine mer, basse mer ou
+l'une ou l'autre. Les actions suivantes peuvent utiliser son heure, sa hauteur, les minutes qui
+restent, la hauteur prédite maintenant, la tendance et une phrase (« Pleine mer à 17:39 (1,80 m)
+»).
+
+## Exemples de scènes
+
+- **Promenade à marée basse** : déclencheur « Marée : pleine ou basse mer », basse mer, 1 heure
+  avant → envoyer la phrase du déclencheur sur votre téléphone, c'est l'heure d'aller à la plage.
+- **Alerte grande marée** : déclencheur « Marée : pleine mer au-dessus du seuil », 12 heures avant
+  → envoyer la phrase à la famille et fermer la porte du garage à temps.
+- **Point du matin** : à 7 h, action « Marée : obtenir la prochaine marée », puis envoyer sa phrase
+  avec la météo.
+
+## Sources des données et quotas
+
+- Données : **NOAA CO-OPS** (Center for Operational Oceanographic Products and Services), API
+  `api.tidesandcurrents.noaa.gov`, domaine public. Pas de clé ; chaque requête nomme l'application
+  (`application=gladys-noaa-tides`), comme le demande la NOAA.
+- Requêtes, par station : le détail une fois par semaine, les prédictions toutes les 6 heures (2
+  requêtes), les dernières mesures toutes les 6 minutes pour les appareils créés dont la station
+  mesure (1 ou 2 requêtes). La liste des stations (environ 3 500) une fois par semaine, gardée dans
+  `/data`.
+- Les prédictions suivent l'époque et les repères publiés par la NOAA ; elles couvrent les deux
+  jours suivants : une courte panne de la NOAA ne change rien.
 
 ## Dépannage
 
-L'intégration journalise tout ce qu'elle fait : consultez les logs de
-l'intégration depuis l'interface Gladys (ou `docker logs` sur l'hôte) avec
-`LOG_LEVEL=debug` pour le détail complet.
+- **« Station inconnue »** sur l'écran de configuration : le numéro ou le nom n'est pas dans la
+  liste NOAA des stations de marée. Utilisez **Chercher des stations** et copiez le numéro.
+- **Ni hauteur mesurée ni température** : la station n'a pas de capteur actif (la plupart n'ont que
+  des prédictions). La NOAA marque un capteur en panne comme inactif : la fonctionnalité revient
+  après « Mettre à jour » dans l'onglet Découverte une fois le capteur réparé.
+- **Hauteurs en mètres après avoir choisi les pieds** : cliquez sur **Mettre à jour** sur
+  l'appareil dans l'onglet Découverte.
+- **« NOAA Tides & Currents ne répond pas »** : le service est en panne ou injoignable depuis
+  Gladys ; les comptes à rebours et les déclencheurs continuent sur les prédictions déjà connues.
+- Journaux détaillés : réglez `LOG_LEVEL=debug` sur le conteneur.
+
+## Limites
+
+- Stations de marée de la NOAA seulement (États-Unis, Porto Rico, îles du Pacifique…) : ni
+  courants, ni niveaux des Grands Lacs.
+- Hauteurs au-dessus de MLLW seulement ; les autres repères ne sont pas proposés.
+- Pas pour la navigation : prédictions astronomiques, sans vent ni pression.
+- Le seuil de crue mineure de la NOAA n'existe qu'aux stations marégraphiques.
+- Intégration non affiliée à la NOAA.

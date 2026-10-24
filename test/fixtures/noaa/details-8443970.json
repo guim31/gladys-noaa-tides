@@ -1,0 +1,227 @@
+{
+  "count": 1,
+  "units": null,
+  "stations": [
+    {
+      "tidal": true,
+      "greatlakes": false,
+      "shefcode": "BHBM3",
+      "details": {
+        "self": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8443970/details.json"
+      },
+      "sensors": {
+        "units": "meters",
+        "sensors": [
+          {
+            "status": 1,
+            "refdatum": "Site Elevation",
+            "sensorID": "D1",
+            "name": "Air Temperature",
+            "elevation": 2.45,
+            "message": "",
+            "dcp": 1
+          },
+          {
+            "status": 1,
+            "refdatum": "MSL",
+            "sensorID": "F1",
+            "name": "Barometric Pressure",
+            "elevation": 9.29,
+            "message": "",
+            "dcp": 1
+          },
+          {
+            "status": 1,
+            "refdatum": "MSL",
+            "sensorID": "site",
+            "name": "site",
+            "elevation": 8.05,
+            "message": "",
+            "dcp": 0
+          },
+          {
+            "status": 1,
+            "refdatum": "",
+            "sensorID": "U1",
+            "name": "Tsunami WL",
+            "elevation": null,
+            "message": "",
+            "dcp": 1
+          },
+          {
+            "status": 1,
+            "refdatum": "",
+            "sensorID": "Y1",
+            "name": "Microwave WL",
+            "elevation": null,
+            "message": "",
+            "dcp": 1
+          }
+        ],
+        "self": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8443970/sensors.json"
+      },
+      "floodlevels": {
+        "nos_minor": 4.83,
+        "nos_moderate": 5.099,
+        "nos_major": 5.5,
+        "nws_minor": 4.885,
+        "nws_moderate": 5.494,
+        "nws_major": 5.952,
+        "action": null,
+        "self": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8443970/floodlevels.json"
+      },
+      "datums": {
+        "accepted": "Apr 17 2003",
+        "superseded": "",
+        "epoch": "1983-2001",
+        "units": "meters",
+        "OrthometricDatum": "NAVD88",
+        "datums": [
+          {
+            "name": "STND",
+            "description": "Station Datum",
+            "value": 0.0
+          },
+          {
+            "name": "MHHW",
+            "description": "Mean Higher-High Water",
+            "value": 4.205
+          },
+          {
+            "name": "MHW",
+            "description": "Mean High Water",
+            "value": 4.071
+          },
+          {
+            "name": "DTL",
+            "description": "Mean Diurnal Tide Level",
+            "value": 2.64
+          },
+          {
+            "name": "MTL",
+            "description": "Mean Tide Level",
+            "value": 2.624
+          },
+          {
+            "name": "MSL",
+            "description": "Mean Sea Level",
+            "value": 2.66
+          },
+          {
+            "name": "MLW",
+            "description": "Mean Low Water",
+            "value": 1.178
+          },
+          {
+            "name": "MLLW",
+            "description": "Mean Lower-Low Water",
+            "value": 1.074
+          },
+          {
+            "name": "GT",
+            "description": "Great Diurnal Range",
+            "value": 3.131
+          },
+          {
+            "name": "MN",
+            "description": "Mean Range of Tide",
+            "value": 2.893
+          },
+          {
+            "name": "DHQ",
+            "description": "Mean Diurnal High Water Inequality",
+            "value": 0.134
+          },
+          {
+            "name": "DLQ",
+            "description": "Mean Diurnal Low Water Inequality",
+            "value": 0.104
+          },
+          {
+            "name": "HWI",
+            "description": "Greenwich High Water Interval (in hours)",
+            "value": 3.738
+          },
+          {
+            "name": "LWI",
+            "description": "Greenwich Low Water Interval (in hours)",
+            "value": 9.925
+          },
+          {
+            "name": "NAVD88",
+            "description": "North American Vertical Datum of 1988",
+            "value": 2.752
+          }
+        ],
+        "LAT": 0.42763782,
+        "LATdate": "20360114",
+        "LATtime": "22:54",
+        "HAT": 4.830638,
+        "HATdate": "20161115",
+        "HATtime": "16:06",
+        "min": -0.061,
+        "mindate": "19400324",
+        "mintime": "00:00",
+        "max": 5.696,
+        "maxdate": "20180104",
+        "maxtime": "17:42",
+        "disclaimers": {
+          "disclaimers": [],
+          "self": null
+        },
+        "DatumAnalysisPeriod": ["01/01/1983 - 12/31/2001"],
+        "NGSLink": "",
+        "ctrlStation": "",
+        "self": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8443970/datums.json"
+      },
+      "supersededdatums": {
+        "self": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8443970/supersededdatums.json"
+      },
+      "harmonicConstituents": {
+        "self": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8443970/harcon.json"
+      },
+      "benchmarks": {
+        "self": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8443970/benchmarks.json"
+      },
+      "tidePredOffsets": {
+        "self": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8443970/tidepredoffsets.json"
+      },
+      "ofsMapOffsets": {
+        "self": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8443970/ofsmapoffsets.json"
+      },
+      "state": "MA",
+      "timezone": "EST",
+      "timezonecorr": -5,
+      "observedst": true,
+      "stormsurge": false,
+      "nearby": {
+        "self": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8443970/nearby.json"
+      },
+      "forecast": true,
+      "outlook": true,
+      "HTFhistorical": true,
+      "HTFmonthly": true,
+      "nonNavigational": false,
+      "inundationdb": true,
+      "id": "8443970",
+      "name": "Boston",
+      "lat": 42.35389,
+      "lng": -71.05028,
+      "affiliations": "NWLON",
+      "portscode": "bh",
+      "products": {
+        "self": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8443970/products.json"
+      },
+      "disclaimers": {
+        "self": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8443970/disclaimers.json"
+      },
+      "notices": {
+        "self": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8443970/notices.json"
+      },
+      "self": "https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations/8443970.json",
+      "expand": "details,sensors,floodlevels,datums,harcon,tidepredoffsets,ofsmapoffsets,products,disclaimers,notices",
+      "tideType": "Mixed"
+    }
+  ],
+  "self": null
+}

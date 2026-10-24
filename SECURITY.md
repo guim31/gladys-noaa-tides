@@ -30,6 +30,18 @@ Gladys before reporting a problem.
 
 In scope: the code of this repository and the Docker image it publishes.
 
+What the integration handles:
+
+- **Stored in `/data`** (`/data/noaa-tides.json`): the NOAA list of the tide stations (id, name,
+  state, coordinates, kind), the details, predictions and latest observations of the followed
+  stations, and the time of the last scene-trigger check. No secret, no account, no token: the
+  service needs none. The **house coordinates** are read from Gladys (manifest `location: true`)
+  only by "Find stations", to sort the stations inside the container; they are never sent,
+  stored nor logged.
+- **Network**: HTTPS GET requests to one public service only, `api.tidesandcurrents.noaa.gov`
+  (station list, station details, predictions and latest observations of the followed stations).
+  Nothing listens on the network.
+
 Out of scope: Gladys Assistant itself (see its
 [security policy](https://github.com/GladysAssistant/Gladys/security/policy)),
-and the third-party services and devices the integration talks to.
+and the NOAA services.

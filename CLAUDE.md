@@ -31,16 +31,20 @@ pushing.
 ## Architecture
 
 ```
-index.js                          SDK wiring only: handlers registered before connect()
-src/devices/index.js              registry of the device blueprints + dispatch helpers
-src/devices/<type>.js             one device type per file (buildDevice, onPoll, onSetValue...)
-src/scenes.js                     scene action handlers (manifest `scene_actions`)
-src/widgets.js                    dashboard widget handlers (manifest `widgets`)
+index.js                          SDK wiring only (handlers registered in src/app.js)
+src/app.js                        registers every SDK handler on the monitor, action, scene action, widget
+src/monitor.js                    followed stations, NOAA refreshes, minute cycle, states, scene triggers
+src/noaa.js                       NOAA CO-OPS client (mdapi + datagetter) and parsing
+src/tides.js                      tide arithmetic: level now (curve or cosine), next tide, trend
+src/devices.js                    Gladys device of a station (features, names in four languages)
+src/search.js                     "Find stations" configuration action
+src/widgets.js                    dashboard widget `next_tides`
+src/messages.js                   texts and formats sent from the container, four languages
 src/config.js                     DEFAULT_CONFIG (mirrors the manifest defaults) + normalization
-src/weather.js                    example driver (Open-Meteo)
-gladys-assistant-integration.json manifest: name, config_schema, actions, image...
-docs/en.md, docs/fr.md            user documentation, re-hosted by Gladys (mandatory)
-test/                             node --test, against the SDK's fake Gladys (integration-sdk/testing)
+src/http.js, geo.js, store.js     GET JSON, distances, /data persistence
+gladys-assistant-integration.json manifest: config_schema, action, scene triggers and action, widget
+docs/{en,fr,de,es}.md             user documentation, re-hosted by Gladys (same sections)
+test/                             node --test, against the SDK's fake Gladys and recorded answers
 .github/scripts/release.mjs       release helpers (manifest bump, changelog), tested in test/
 ```
 
@@ -70,8 +74,10 @@ test/                             node --test, against the SDK's fake Gladys (in
   `type: "provider"`: 5.1.0). `test/manifest.test.js` ties the manifest to the
   code (defaults, action, scene and widget handlers): change both sides
   together.
-- **User-facing text** is bilingual (English and French): action messages,
-  manifest texts, and `docs/en.md` / `docs/fr.md`, kept in sync.
+- **User-facing text** is in four languages (English, French, German with
+  "du", Spanish with "usted"): action messages, manifest texts, widget texts,
+  feature names, and `docs/{en,fr,de,es}.md`, kept in sync
+  (`test/i18n.test.js`).
 - **Style.** Prettier formats, ESLint catches mistakes. Comments explain why,
   in English. Tests never touch the network.
 
@@ -233,3 +239,42 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
 - Docs `en`, `fr`, `de`, `es` avec les mêmes sections.
 - Chauffe, ouverture, sécurité : ne rien rendre pilotable « comme un thermostat » ou par un assistant
   vocal quand une erreur serait dangereuse (leçon d'OctoPrint).
+
+## NOAA Tides (propre à cette intégration)
+
+- API sans clé, domaine public : `https://api.tidesandcurrents.noaa.gov`. Le datagetter
+  (`/api/prod/datagetter`) répond **HTTP 400 avec `{ "error": { "message" } }`** quand une station
+  n'a pas la donnée (« No data was found… », « No Predictions data was found… », « There is no MLLW
+  for the station… ») : `isNoData` les distingue d'une panne. Paramètre `application=` demandé par
+  la NOAA : `gladys-noaa-tides`.
+- Tout est demandé en `units=metric`, `time_zone=gmt`, `datum=MLLW` ; les heures reviennent sans
+  fuseau (`"2026-10-24 05:37"`, GMT). Conversion en pieds / °F et en heure locale (TZ de Gladys)
+  dans le conteneur. Les états suivent l'**unité de la fonctionnalité telle que créée** (une
+  config passée en pieds sans « Mettre à jour » continue en mètres).
+- Liste `mdapi/prod/webapi/stations.json?type=tidepredictions` : ~3 500 stations, 2 Mo, `type`
+  **R** (référence : courbe `interval=6`) ou **S** (secondaire : `interval=hilo` seulement, le
+  `interval=6` répond 400). Noms des stations R en capitales (« SAN FRANCISCO (Golden Gate) ») :
+  `displayName`. Gardée réduite dans `/data`, une fois par semaine.
+- Détail `stations/<id>.json?expand=sensors,floodlevels,datums&units=metric` : **une** requête
+  donne capteurs (`status` 1 actif, 0 en panne : la température de San Francisco est à 0 depuis
+  12/2025), seuils de crue (`nos_minor`, sinon `nws_minor`) et repères. Les seuils sont au-dessus
+  du **zéro de station (STND)** : seuil MLLW = `nos_minor - MLLW` (San Francisco 2,351 m). Une
+  station S n'a ni capteurs ni repères.
+- Fonctionnalités selon les capteurs actifs (niveau mesuré si un capteur `… WL`, température si
+  `Water Temperature`) : un capteur qui change d'état republie la découverte (« Mettre à jour »).
+- Déclencheurs : un événement par décalage proposé (égalité seulement), calculés sur les
+  pleines/basses mers dans la fenêtre (dernière minute, maintenant] ; `lastTick` dans `/data`
+  évite doublons et rattrapage (rien n'est rejoué au-delà de 15 min d'arrêt). Seuil d'alerte :
+  config (par station ou global, dans l'unité choisie, virgule décimale acceptée) sinon crue
+  mineure NOAA. Pas de déclencheur sur la hauteur mesurée : condition native de Gladys.
+- Widget : `chart` avec `annotations` et `now_marker` (spec 5.2.0 ; un cœur qui ne les connaît pas
+  les ignore), libellés d'annotation ≤ 16 caractères (« 07:13 1,64 m »).
+- Fixtures enregistrées le 24/10/2026 à 09:26 UTC (San Francisco, The Battery, Boston, Hull, liste
+  réduite à 21 stations autour) ; horloge de test à 09:30 UTC, `TZ=America/New_York`.
+- Relecture du 24/10 : un échec réseau arrête les requêtes du reste du cycle (pas de pile de
+  délais de 30 s) ; « NOAA répond de nouveau » seulement après un cycle qui a **vraiment** demandé
+  quelque chose (sinon le statut clignote entre deux nouvelles tentatives à 15 min) ; un « no data »
+  d'une station n'est pas une panne (un avertissement par station, nouvel essai toutes les 6 h) ;
+  la liste téléchargée par « Chercher des stations » fait résoudre les stations au cycle suivant ;
+  les événements de scène partent avant les requêtes du cycle. `/data` en trois fichiers : liste
+  (à son téléchargement), stations (quand elles changent), `lastTick` (quelques octets par minute).
