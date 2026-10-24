@@ -22,6 +22,8 @@ Describe each change under `## [Unreleased]
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-10-24
+
 ### Added
 
 - A working example of scene triggers, scene actions and dashboard widgets
@@ -64,4 +66,5 @@ Describe each change under `## [Unreleased]
   the previous tag, which may not exist on the registry. Sub-containers on a
   third-party image (a broker, a database...) keep theirs.
 
-[Unreleased]: https://github.com/GladysAssistant/integration-template-js/commits/main
+[Unreleased]: https://github.com/guim31/gladys-noaa-tides/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/guim31/gladys-noaa-tides/releases/tag/v1.0.0
