@@ -80,7 +80,9 @@ export function parseDetails(json) {
   const mllw = number((station.datums?.datums ?? []).find((datum) => datum.name === 'MLLW')?.value);
   const minor = number(station.floodlevels?.nos_minor) ?? number(station.floodlevels?.nws_minor);
   return {
-    waterLevel: active((name) => /\bWL$|water level/i.test(name)),
+    // The water level is asked above MLLW: a station without that datum
+    // answers "There is no MLLW" and gets no observed level.
+    waterLevel: mllw !== null && active((name) => /\bWL$|water level/i.test(name)),
     waterTemperature: active((name) => name === 'Water Temperature'),
     // Flood levels are given above the station datum (STND), like the datums.
     minorFlood: minor !== null && mllw !== null ? Math.round((minor - mllw) * 1000) / 1000 : null,

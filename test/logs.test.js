@@ -94,3 +94,44 @@ test('an unknown station is one warning, not one per cycle', async (t) => {
   await world.fake.configUpdated({ stations: 'Nowhere' });
   assert.equal(lines.filter((line) => /Unknown station: Nowhere/.test(line.text)).length, 1);
 });
+
+test('NOAA down, cycles every minute: still one warning, no flapping status', async (t) => {
+  const world = await createWorld({ config: { stations: BOSTON } });
+  t.after(() => world.app.stop());
+  await create(world, BOSTON);
+  const lines = captureLogs(t, 'info');
+  const statuses = world.fake.connectionStatuses.length;
+  world.api.down = 503;
+  for (let i = 0; i < 60; i += 1) {
+    await tick(world, 1);
+  }
+  assert.equal(lines.length, 1, lines.map(strip).join('\n'));
+  assert.equal(world.fake.connectionStatuses.length, statuses + 1);
+  world.api.down = false;
+  for (let i = 0; i < 15; i += 1) {
+    await tick(world, 1);
+  }
+  assert.deepEqual(lines.slice(1).map(strip), ['[INFO] [noaa-tides] NOAA answers again']);
+  assert.equal(world.fake.connectionStatuses.length, statuses + 2);
+});
+
+test('a station NOAA has no predictions for: one warning, asked again every 6 hours', async (t) => {
+  const world = await createWorld({ config: { stations: BOSTON } });
+  t.after(() => world.app.stop());
+  world.api.answers[`hilo-${BOSTON}`] = {
+    error: { message: 'No Predictions data was found. Please make sure the Datum input is valid.' },
+  };
+  world.monitor.data.stations = {};
+  const lines = captureLogs(t, 'info');
+  const asked = () =>
+    world.api.requests.filter((url) => url.searchParams.get('interval') === 'hilo').length;
+  const before = asked();
+  for (let i = 0; i < 60; i += 1) {
+    await tick(world, 6);
+  }
+  assert.equal(asked() - before, 1);
+  assert.deepEqual(lines.map(strip), [
+    `[WARN] [noaa-tides] Station ${BOSTON}: NOAA has no data for it (No Predictions data was found. Please make sure the Datum input is valid.)`,
+  ]);
+  assert.equal(world.fake.connectionStatus.connected, true, 'not an outage');
+});

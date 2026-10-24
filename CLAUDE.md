@@ -271,3 +271,10 @@ long, et sur un « Sie »/« Ihr… » de politesse en allemand. Le store exige 
   les ignore), libellés d'annotation ≤ 16 caractères (« 07:13 1,64 m »).
 - Fixtures enregistrées le 24/10/2026 à 09:26 UTC (San Francisco, The Battery, Boston, Hull, liste
   réduite à 21 stations autour) ; horloge de test à 09:30 UTC, `TZ=America/New_York`.
+- Relecture du 24/10 : un échec réseau arrête les requêtes du reste du cycle (pas de pile de
+  délais de 30 s) ; « NOAA répond de nouveau » seulement après un cycle qui a **vraiment** demandé
+  quelque chose (sinon le statut clignote entre deux nouvelles tentatives à 15 min) ; un « no data »
+  d'une station n'est pas une panne (un avertissement par station, nouvel essai toutes les 6 h) ;
+  la liste téléchargée par « Chercher des stations » fait résoudre les stations au cycle suivant ;
+  les événements de scène partent avant les requêtes du cycle. `/data` en trois fichiers : liste
+  (à son téléchargement), stations (quand elles changent), `lastTick` (quelques octets par minute).

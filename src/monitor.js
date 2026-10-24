@@ -62,6 +62,7 @@ export const DEFAULT_TIMINGS = {
   predictionsMaxAgeMs: 6 * HOUR,
   observationsEveryMs: 6 * MINUTE,
   retryMs: 15 * MINUTE,
+  noDataRetryMs: 6 * HOUR,
   levelFreshMs: HOUR,
   temperatureFreshMs: 3 * HOUR,
   heartbeatMs: 12 * HOUR,
@@ -84,7 +85,16 @@ const text = (value) => String(value ?? '').slice(0, MAX_STRING);
 export class Monitor {
   constructor({ gladys, store, fetch, timers = true, now = Date.now, timings = {} }) {
     this.gladys = gladys;
+    // Three files under /data, written only when their content changes: the
+    // station list (about 400 KB, weekly), what is known of the followed
+    // stations, and the few bytes of the last trigger check (every minute).
     this.store = store;
+    this.listStore = store.sibling('noaa-tides-list.json');
+    this.tickStore = store.sibling('noaa-tides-tick.json');
+    this.dirty = false;
+    this.started = false;
+    this.pendingDiscover = false;
+    this.pendingRun = null;
     this.api = new NoaaClient({ fetch });
     this.timers = timers;
     this.now = now;
@@ -107,15 +117,20 @@ export class Monitor {
 
   async start(config) {
     this.config = config;
-    const saved = await this.store.load();
-    if (Array.isArray(saved.list)) {
-      this.data.list = saved.list;
-      this.data.listAt = Number(saved.listAt) || 0;
+    const [saved, list, tick] = await Promise.all([
+      this.store.load(),
+      this.listStore.load(),
+      this.tickStore.load(),
+    ]);
+    if (Array.isArray(list.list)) {
+      this.data.list = list.list;
+      this.data.listAt = Number(list.listAt) || 0;
     }
     if (saved.stations && typeof saved.stations === 'object') {
       this.data.stations = saved.stations;
     }
-    this.data.lastTick = Number(saved.lastTick) || null;
+    this.data.lastTick = Number(tick.lastTick) || null;
+    this.started = true;
     this.resolve();
     await this.loadDevices();
     this.running = this.runCycle({ discover: true });
@@ -137,12 +152,19 @@ export class Monitor {
       clearInterval(this.timer);
       this.timer = null;
     }
-    // Waits for the cycle in progress and the last write under /data.
-    return (this.cycling ?? Promise.resolve()).then(() => this.store.flush());
+    // Waits for the cycle in progress and the last writes under /data.
+    return (this.cycling ?? Promise.resolve()).then(() =>
+      Promise.all([this.store.flush(), this.listStore.flush(), this.tickStore.flush()]),
+    );
   }
 
   /** New configuration: the stations, units or alert levels may have changed. */
   async reconfigure(config) {
+    if (!this.started) {
+      // The first start failed (configuration unreadable): start now.
+      await this.start(config);
+      return;
+    }
     this.config = config;
     this.resolve();
     await this.runCycle({ discover: true });
@@ -152,6 +174,10 @@ export class Monitor {
 
   /** Gladys reconnected (restarted): publish everything again. */
   async resync(config) {
+    if (!this.started) {
+      await this.start(config);
+      return;
+    }
     this.config = config;
     this.resolve();
     await this.loadDevices();
@@ -255,8 +281,9 @@ export class Monitor {
 
   /** The station list, downloaded when missing (for the search action). */
   async stationList() {
-    if (!this.data.list) {
-      await this.refreshList(this.now(), { force: true });
+    if (!this.data.list && (await this.refreshList(this.now(), { force: true }))) {
+      // Downloaded here: the next cycle resolves the configured stations.
+      this.pendingDiscover = true;
     }
     return this.data.list;
   }
@@ -295,16 +322,47 @@ export class Monitor {
     return (this.nextAttempt.get(key) ?? 0) <= now;
   }
 
-  /** Runs a request; an outage is logged once and the request tried again later. */
-  async attempt(key, now, request) {
+  /**
+   * Runs a request; a failure is tried again later. After a network failure
+   * the rest of the cycle asks nothing (NOAA is down: no pile of timeouts). A
+   * "no data" answer of a station is not an outage: it is warned once per
+   * station and asked again every 6 hours.
+   */
+  async attempt(key, now, request, { force = false } = {}) {
+    if (this.outage && !force) {
+      this.nextAttempt.set(key, now + this.timings.retryMs);
+      return { ok: false };
+    }
+    this.attempts += 1;
     try {
       const result = await request();
       this.nextAttempt.delete(key);
+      this.recoveredNoData(key);
       return { ok: true, result };
     } catch (err) {
-      this.nextAttempt.set(key, now + this.timings.retryMs);
-      this.outage = this.outage ?? err;
+      if (isNoData(err)) {
+        this.nextAttempt.set(key, now + this.timings.noDataRetryMs);
+        this.failedNoData(key, err);
+      } else {
+        this.nextAttempt.set(key, now + this.timings.retryMs);
+        this.outage = err;
+      }
       return { ok: false, error: err };
+    }
+  }
+
+  failedNoData(key, err) {
+    const id = key.split(':')[1];
+    if (id && !this.failures.has(`nodata:${id}`)) {
+      this.failures.add(`nodata:${id}`);
+      logger.warn(`Station ${id}: NOAA has no data for it (${err.apiMessage})`);
+    }
+  }
+
+  recoveredNoData(key) {
+    const id = key.split(':')[1];
+    if (id && key.startsWith('predictions:')) {
+      this.recovered(`nodata:${id}`, `Station ${id}: NOAA has data for it again`);
     }
   }
 
@@ -313,12 +371,14 @@ export class Monitor {
     if (!stale || (!force && !this.due('list', now))) {
       return false;
     }
-    const { ok, result } = await this.attempt('list', now, () => this.api.stations());
+    // A user action (force) asks even after a failure of the last cycle.
+    const { ok, result } = await this.attempt('list', now, () => this.api.stations(), { force });
     if (!ok) {
       return false;
     }
     this.data.list = result;
     this.data.listAt = now;
+    this.listStore.save({ list: result, listAt: now });
     logger.debug(`Station list: ${result.length} stations`);
     return true;
   }
@@ -337,6 +397,7 @@ export class Monitor {
         const before = entry.details;
         entry.details = result;
         entry.detailsAt = now;
+        this.dirty = true;
         // The sensors decide the features: a change is a new device structure.
         structure =
           before?.waterLevel !== result.waterLevel ||
@@ -361,7 +422,11 @@ export class Monitor {
         entry.extremes = result.extremes;
         entry.curve = result.curve;
         entry.predictionsAt = now;
+        this.dirty = true;
         this.refreshWidget();
+      } else if (ok) {
+        // An empty answer: asked again later, not at every minute.
+        this.nextAttempt.set(`predictions:${station.id}`, now + this.timings.retryMs);
       }
     }
     const details = entry.details;
@@ -377,6 +442,7 @@ export class Monitor {
           : null,
       }));
       if (ok) {
+        this.dirty = true;
         entry.level = result.level ?? entry.level ?? null;
         entry.temperature = result.temperature ?? entry.temperature ?? null;
         this.nextAttempt.set(`obs:${station.id}`, now + this.timings.observationsEveryMs);
@@ -390,7 +456,16 @@ export class Monitor {
   /** One refresh: data due, states, scene events. Cycles never overlap. */
   runCycle(options = {}) {
     if (this.cycling) {
-      return this.cycling.then(() => (options.discover ? this.runCycle(options) : undefined));
+      // One run waits for the one in progress (a device created mid-cycle
+      // gets its states at once); several requests share it.
+      if (options.discover) {
+        this.pendingDiscover = true;
+      }
+      this.pendingRun ??= this.cycling.then(() => {
+        this.pendingRun = null;
+        return this.runCycle();
+      });
+      return this.pendingRun;
     }
     this.cycling = this.cycle(options).finally(() => {
       this.cycling = null;
@@ -403,8 +478,16 @@ export class Monitor {
       return;
     }
     const now = this.now();
+    // The scene events of the minute come from the predictions already
+    // known: a slow NOAA never delays them.
+    await this.fireEvents(now);
     this.outage = null;
-    let structure = discover;
+    this.attempts = 0;
+    let structure = discover || this.pendingDiscover;
+    if (this.pendingDiscover) {
+      this.pendingDiscover = false;
+      this.resolve();
+    }
     if (await this.refreshList(now)) {
       this.resolve();
       structure = true;
@@ -414,18 +497,18 @@ export class Monitor {
         structure = true;
       }
     }
-    if (this.outage && !isNoData(this.outage)) {
+    if (this.outage) {
       if (this.failed('noaa', `NOAA unreachable: ${this.outage.message}`)) {
         await this.status(false, 'unreachable');
       }
-    } else if (!this.outage && this.recovered('noaa', 'NOAA answers again')) {
+    } else if (this.attempts > 0 && this.recovered('noaa', 'NOAA answers again')) {
+      // Only a cycle that asked NOAA something and got answers says it is back.
       await this.status(true);
     }
     if (structure) {
       await this.publishDiscovered();
     }
     await this.publishStates(now);
-    await this.fireEvents(now);
     logger.debug(`Refresh cycle: ${this.followed.length} station(s)`);
     await this.save();
     if (discover && !this.failures.has('noaa')) {
@@ -449,12 +532,12 @@ export class Monitor {
   }
 
   save() {
-    return this.store.save({
-      list: this.data.list,
-      listAt: this.data.listAt,
-      stations: this.data.stations,
-      lastTick: this.data.lastTick,
-    });
+    const writes = [this.tickStore.save({ lastTick: this.data.lastTick })];
+    if (this.dirty) {
+      this.dirty = false;
+      writes.push(this.store.save({ stations: this.data.stations }));
+    }
+    return Promise.all(writes);
   }
 
   /** The discovery list: one device per followed station. */

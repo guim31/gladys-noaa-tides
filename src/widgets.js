@@ -15,6 +15,7 @@ import { WIDGET_COLORS } from '@gladysassistant/integration-sdk';
 import { stationIdOf, stationIds } from './devices.js';
 import {
   formatDayTime,
+  formatNumber,
   formatHeight,
   formatTime,
   heightUnit,
@@ -137,8 +138,9 @@ function stationContent(monitor, id, language) {
         .map((tide) => ({
           t: new Date(tide.at).toISOString(),
           value: toUnit(tide.height, imperial),
+          // The chart carries the unit: "10:39 PM -1.25" fits the 16 characters.
           label: clip(
-            `${formatTime(tide.at, language)} ${formatHeight(tide.height, language, imperial)}`,
+            `${formatTime(tide.at, language)} ${formatNumber(toUnit(tide.height, imperial), language)}`,
             MAX_ANNOTATION,
           ),
           color: tide.type === 'H' ? WIDGET_COLORS.PRIMARY : WIDGET_COLORS.INFO,

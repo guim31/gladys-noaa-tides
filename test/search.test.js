@@ -55,3 +55,21 @@ test('no house location, NOAA down', async (t) => {
   fresh.monitor.nextAttempt.clear();
   assert.match((await search(fresh, 'Boston')).en, /cannot be downloaded right now/);
 });
+
+test('the list downloaded by a search lets the configured stations be followed', async (t) => {
+  const world = await createWorld({ config: { stations: 'Boston' }, connect: false });
+  t.after(() => world.app.stop());
+  world.api.down = 'network';
+  await world.gladys.connect();
+  await world.app.ready;
+  assert.equal(world.monitor.followed.length, 0);
+  world.api.down = false;
+  world.monitor.nextAttempt.clear();
+  await search(world, 'Boston');
+  world.clock.advance(60 * 1000);
+  await world.monitor.runCycle();
+  assert.deepEqual(
+    world.fake.discoveredDevices.map((device) => device.name),
+    ['Marée Boston'],
+  );
+});

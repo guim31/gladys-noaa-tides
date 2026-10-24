@@ -13,13 +13,18 @@ const logger = createLogger({ name: 'noaa-tides-store' });
 const FILE_NAME = 'noaa-tides.json';
 
 export class Store {
-  constructor(directory = process.env.NOAA_TIDES_DATA_DIR || '/data') {
+  constructor(directory = process.env.NOAA_TIDES_DATA_DIR || '/data', fileName = FILE_NAME) {
     this.directory = directory;
-    this.path = join(directory, FILE_NAME);
+    this.path = join(directory, fileName);
     this.pending = null;
     this.writing = null;
     // A failing disk would fail every save: logged once, then at debug.
     this.writeFailed = false;
+  }
+
+  /** Another file of the same directory. */
+  sibling(fileName) {
+    return new Store(this.directory, fileName);
   }
 
   async load() {
