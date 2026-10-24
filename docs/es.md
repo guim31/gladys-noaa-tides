@@ -1,0 +1,160 @@
+# NOAA Tides
+
+Lleva a Gladys las **predicciones de marea de la NOAA** (CO-OPS, Tides & Currents), en las 3.500
+estaciones de marea de **Estados Unidos** y sus territorios: las próximas pleamares y bajamares,
+el nivel del agua previsto ahora, si la marea sube o baja y, donde la estación los mide, el nivel
+del agua medido y la temperatura del agua. Sin cuenta ni clave.
+
+Para los puertos de Francia, use la integración **Marées France** de William-De71: esta es su
+equivalente para Estados Unidos, con las mismas funciones en la medida en que la NOAA lo permite.
+
+> **No para la navegación.** Las predicciones son astronómicas: el viento, la presión y el caudal
+> de los ríos pueden alejar mucho el nivel real. La integración depende de su Gladys, de su acceso
+> a Internet y de un servicio público. Use los productos oficiales de la NOAA y los avisos del
+> National Weather Service para todo lo importante. Integración sin afiliación con la NOAA.
+
+## Lo que obtiene
+
+- **Un dispositivo por estación** seguida, llamado «Marea <estación>»: el **nivel previsto**
+  ahora, la **marea** (subiendo o bajando), la **próxima marea** en una frase («Pleamar a las
+  17:39 (1,80 m)»), los **minutos hasta la próxima pleamar** y **hasta la próxima bajamar**, y sus
+  **alturas**.
+- En las estaciones que los miden: el **nivel del agua medido** (cada 6 minutos) y la
+  **temperatura del agua**.
+- Alturas sobre **MLLW** (Mean Lower Low Water, el cero de las cartas náuticas estadounidenses),
+  en **metros o pies**; temperaturas en °C o °F.
+- Dos **disparadores de escena**: una pleamar o bajamar (a su hora o hasta 6 horas antes), y una
+  pleamar por encima de un **nivel de alerta** (el suyo, o el nivel de inundación menor de la NOAA
+  para la estación), hasta 24 horas antes.
+- Una **acción de escena** que da la próxima marea a las acciones siguientes (hora, altura, frase).
+- Un **widget del panel**: la curva de marea del día con sus pleamares y bajamares, las cuatro
+  próximas mareas y los niveles en directo.
+- Un botón **«Buscar estaciones»**: las estaciones cerca de su casa, cerca de un punto, por nombre
+  o por identificador.
+
+## Requisitos
+
+- Gladys Assistant **5.1.0** o posterior (widget, disparadores y acción de escena).
+- Acceso a Internet de Gladys hacia `api.tidesandcurrents.noaa.gov`.
+- La ubicación de su casa en Gladys, solo para «Buscar estaciones» sin texto.
+
+## Configuración
+
+### Ajustes
+
+- **Estaciones**: identificadores o nombres de las estaciones, separados por comas, 10 como máximo.
+  Un identificador (9414290) es exacto. Un nombre («Boston», «San Francisco») toma la estación
+  correspondiente, primero una estación de referencia. También vale una página de
+  tidesandcurrents.noaa.gov con `?id=`.
+- **Unidades**: metros y °C (por defecto) o pies y °F. Gladys fija la unidad de una función al
+  crear el dispositivo: tras un cambio, pulse **Actualizar** en los dispositivos de la pestaña
+  Descubrir.
+- **Niveles de alerta de las pleamares**: para el disparador «Pleamar por encima del nivel de
+  alerta», en las unidades de arriba, sobre MLLW. Un nivel para todas las estaciones (`2,1`), uno
+  por estación (`9414290=2,1; 8443970=3,6`), o ambos. Vacío: el **nivel de inundación menor de la
+  NOAA** para la estación, si lo tiene (estaciones mareográficas).
+- **Idioma de los textos**: de los nombres de dispositivos y funciones (fijados al crearlos) y de
+  los textos enviados a las escenas. Francés por defecto.
+
+Guarde, abra la pestaña **Descubrir** y cree los dispositivos que desee.
+
+### Encontrar sus estaciones
+
+El botón **Buscar estaciones** enumera hasta 10 estaciones con su identificador, su estado, su
+distancia y su tipo:
+
+- deje el campo **vacío** para las estaciones más cercanas a su casa;
+- escriba una **latitud y una longitud** (`37.8, -122.47`) para las estaciones más cercanas a ese
+  punto;
+- escriba un **nombre**, con su estado si hace falta (`Sausalito CA`), o un **identificador**.
+
+Una **estación de referencia** tiene la curva completa cada 6 minutos. Una **estación secundaria**
+solo tiene sus pleamares y bajamares (desfases de una estación de referencia): su nivel entre
+ambas se calcula con la interpolación en coseno de los anuarios de mareas, con unos centímetros de
+error.
+
+## Dispositivos
+
+| Función                      | Tipo        | Notas                                                         |
+| ---------------------------- | ----------- | ------------------------------------------------------------- |
+| Nivel previsto               | nivel       | ahora, curva de las estaciones de referencia, si no calculado |
+| Marea                        | texto       | Subiendo / Bajando                                            |
+| Próxima marea                | texto       | «Pleamar a las 17:39 (1,80 m)»                                |
+| Próxima pleamar dentro de    | duración    | minutos                                                       |
+| Altura de la próxima pleamar | nivel       |                                                               |
+| Próxima bajamar dentro de    | duración    | minutos                                                       |
+| Altura de la próxima bajamar | nivel       |                                                               |
+| Nivel del agua medido        | nivel       | estaciones con mareógrafo activo, cada 6 minutos              |
+| Temperatura del agua         | temperatura | estaciones con sensor de temperatura del agua activo          |
+
+La propia integración actualiza los estados cada minuto (las cuentas atrás avanzan cada minuto).
+Una medición de más de una hora (tres para la temperatura) no se vuelve a enviar. Las horas se dan
+en la zona horaria de su Gladys, sea cual sea la de la estación.
+
+## Widget del panel
+
+**Próximas mareas**: para la estación elegida en sus ajustes (o la primera creada), el nivel
+previsto y los valores medidos en mosaicos en directo, la curva desde 2 horas antes hasta 22 horas
+después con sus pleamares y bajamares y una marca de «ahora», las cuatro próximas mareas, el nivel
+de alerta del disparador de pleamar y un enlace a la página de la estación en Tides & Currents.
+
+## Disparadores de escena
+
+- **Marea: pleamar o bajamar**: elija la estación, pleamar, bajamar o ambas, y cuándo: a la hora
+  de la marea, o 15, 30, 45 minutos, 1, 1,5, 2, 3, 4 o 6 horas antes. La escena recibe la estación,
+  la marea, su hora, su altura, la unidad y una frase lista para usar.
+- **Marea: pleamar sobre el nivel de alerta**: una pleamar prevista alcanza el nivel de alerta de
+  la configuración (o el nivel de inundación menor de la NOAA): a su hora, o de 30 minutos a 24
+  horas antes. La escena también recibe el nivel de alerta.
+
+Un umbral sobre el nivel medido no necesita disparador: use la condición de Gladys «el valor de un
+dispositivo supera» en la función **Nivel del agua medido**.
+
+## Acción de escena
+
+**Marea: obtener la próxima marea**: para una estación, la próxima pleamar, bajamar o cualquiera de
+las dos. Las acciones siguientes pueden usar su hora, su altura, los minutos que faltan, el nivel
+previsto ahora, la tendencia y una frase («Pleamar a las 17:39 (1,80 m)»).
+
+## Ejemplos de escenas
+
+- **Paseo con marea baja**: disparador «Marea: pleamar o bajamar», bajamar, 1 hora antes → enviar
+  la frase del disparador a su teléfono, es hora de ir a la playa.
+- **Aviso de marea viva**: disparador «Marea: pleamar sobre el nivel de alerta», 12 horas antes →
+  enviar la frase a la familia y cerrar a tiempo la puerta del garaje.
+- **Resumen matinal**: a las 7, acción «Marea: obtener la próxima marea» y, después, enviar su
+  frase con el tiempo.
+
+## Fuentes de datos y cuotas
+
+- Datos: **NOAA CO-OPS** (Center for Operational Oceanographic Products and Services), API
+  `api.tidesandcurrents.noaa.gov`, dominio público. Sin clave; cada petición nombra la aplicación
+  (`application=gladys-noaa-tides`), como pide la NOAA.
+- Peticiones, por estación: los detalles una vez por semana, las predicciones cada 6 horas (2
+  peticiones), las últimas mediciones cada 6 minutos para los dispositivos creados cuya estación
+  mide (1 o 2 peticiones). La lista de estaciones (unas 3.500) una vez por semana, guardada en
+  `/data`.
+- Las predicciones siguen la época y los niveles de referencia publicados por la NOAA; cubren los
+  dos días siguientes, así que una breve caída de la NOAA no cambia nada.
+
+## Solución de problemas
+
+- **«Estación desconocida»** en la pantalla de configuración: el identificador o el nombre no está
+  en la lista NOAA de estaciones de marea. Use **Buscar estaciones** y copie el identificador.
+- **Ni nivel medido ni temperatura**: la estación no tiene sensor activo (la mayoría solo tiene
+  predicciones). La NOAA marca un sensor averiado como inactivo: la función vuelve tras
+  «Actualizar» en la pestaña Descubrir una vez reparado.
+- **Alturas en metros tras elegir pies**: pulse **Actualizar** en el dispositivo de la pestaña
+  Descubrir.
+- **«NOAA Tides & Currents no responde»**: el servicio está caído o no es accesible desde Gladys;
+  las cuentas atrás y los disparadores siguen con las predicciones ya conocidas.
+- Registros detallados: ponga `LOG_LEVEL=debug` en el contenedor.
+
+## Límites
+
+- Solo estaciones de marea de la NOAA (Estados Unidos, Puerto Rico, islas del Pacífico…): ni
+  corrientes, ni niveles de los Grandes Lagos.
+- Solo alturas sobre MLLW; no se ofrecen otros niveles de referencia.
+- No para la navegación: predicciones astronómicas, sin viento ni presión.
+- El nivel de inundación menor de la NOAA solo existe en las estaciones mareográficas.
+- Integración sin afiliación con la NOAA.

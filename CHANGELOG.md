@@ -4,9 +4,21 @@ All notable changes to this integration are documented in this file. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project
 uses [semantic versioning](https://semver.org/).
 
-Describe each change under `## [Unreleased]` as you make it. The Release
-workflow moves that section under the version it ships, and the section becomes
-the notes of the version's GitHub Release.
+Describe each change under `## [Unreleased]
+
+### Added
+
+- One device per NOAA tide station (United States and territories): predicted level now, rising
+  or falling, next tide as text, minutes to the next high and low tides and their heights, and
+  the observed water level and water temperature at the stations that measure them. Metres and
+  °C, or feet and °F; heights above MLLW.
+- Scene triggers: high or low tide (at its time or up to 6 hours before), and high tide above an
+  alert level (per station, or the NOAA minor flood level) up to 24 hours before.
+- Scene action "get the next tide" (time, height, minutes, sentence).
+- Dashboard widget "Next tides": live tiles, tide curve with its high and low tides, next four
+  tides.
+- "Find stations" button: near the house, near a latitude and longitude, by name or by id.
+- Texts and documentation in English, French, German and Spanish.
 
 ## [Unreleased]
 

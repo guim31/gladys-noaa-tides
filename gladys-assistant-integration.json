@@ -1,177 +1,860 @@
 {
   "manifest_version": 1,
   "type": "device",
-  "name": "Demo Devices Template",
+  "name": "NOAA Tides",
   "description": {
-    "en": "Starter template showing sensors, a switch, a dimmable light and a smart plug.",
-    "fr": "Template de démarrage : capteurs, interrupteur, lampe variable et prise connectée."
+    "en": "Tides at the NOAA stations of the United States: next high and low tides, level, alerts.",
+    "fr": "Marées aux stations NOAA des États-Unis : pleines et basses mers, hauteur d’eau, alertes.",
+    "de": "Gezeiten an den NOAA-Stationen der USA: Hoch- und Niedrigwasser, Wasserstand, Warnungen.",
+    "es": "Mareas en las estaciones NOAA de Estados Unidos: pleamares, bajamares, nivel y alertas."
   },
   "version": "1.0.0",
-  "docker_image": "ghcr.io/gladysassistant/integration-template-js:1.0.0",
+  "docker_image": "ghcr.io/guim31/gladys-noaa-tides:1.0.0",
   "gladys_version": ">=5.1.0",
-  "cover_image": "https://raw.githubusercontent.com/GladysAssistant/integration-template-js/master/cover.png",
-  "categories": ["lighting", "security", "environment"],
-  "transports": ["local", "cloud"],
+  "cover_image": "https://raw.githubusercontent.com/guim31/gladys-noaa-tides/main/cover.png",
+  "categories": ["environment"],
+  "transports": ["cloud"],
+  "location": true,
   "config_schema": [
     {
       "key": "intro",
       "type": "section",
-      "label": { "en": "Getting started", "fr": "Pour commencer" },
+      "label": {
+        "en": "Your tide stations",
+        "fr": "Vos stations de marée",
+        "de": "Deine Gezeitenstationen",
+        "es": "Sus estaciones de marea"
+      },
       "description": {
-        "en": "The demo weather station reads real data from the free Open-Meteo API: pick the coordinates to observe. No account, no API key.",
-        "fr": "La station météo de démonstration lit de vraies données via l'API gratuite Open-Meteo : choisissez les coordonnées à observer. Pas de compte, pas de clé d'API."
+        "en": "Follow the tide predictions of NOAA (Tides & Currents) at the stations of the United States and its territories. \"Find stations\" below gives their ids. Save, then create the devices in the Discover tab.",
+        "fr": "Suivez les prédictions de marée de la NOAA (Tides & Currents) aux stations des États-Unis et de leurs territoires. « Chercher des stations » ci-dessous donne leurs numéros. Enregistrez, puis créez les appareils dans l’onglet Découverte.",
+        "de": "Verfolge die Gezeitenvorhersagen der NOAA (Tides & Currents) an den Stationen der USA und ihrer Gebiete. „Stationen suchen“ unten zeigt ihre Kennungen. Speichere und lege dann die Geräte im Tab „Entdecken“ an.",
+        "es": "Siga las predicciones de marea de la NOAA (Tides & Currents) en las estaciones de Estados Unidos y sus territorios. «Buscar estaciones» le da sus identificadores. Guarde y, después, cree los dispositivos en la pestaña Descubrir."
       },
       "links": [
         {
-          "url": "https://open-meteo.com/en/docs",
-          "label": { "en": "Open-Meteo documentation", "fr": "Documentation Open-Meteo" }
+          "url": "https://tidesandcurrents.noaa.gov/tide_predictions.html",
+          "label": {
+            "en": "NOAA tide stations map",
+            "fr": "Carte des stations NOAA",
+            "de": "Karte der NOAA-Stationen",
+            "es": "Mapa de las estaciones NOAA"
+          }
         }
       ]
     },
     {
-      "key": "latitude",
-      "type": "number",
-      "label": { "en": "Latitude", "fr": "Latitude" },
-      "description": {
-        "en": "Latitude used for the demo weather sensor.",
-        "fr": "Latitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 48.8566", "fr": "ex. 48.8566" },
-      "required": true,
-      "default": 48.8566,
-      "min": -90,
-      "max": 90
-    },
-    {
-      "key": "longitude",
-      "type": "number",
-      "label": { "en": "Longitude", "fr": "Longitude" },
-      "description": {
-        "en": "Longitude used for the demo weather sensor.",
-        "fr": "Longitude utilisée par le capteur météo de démonstration."
-      },
-      "placeholder": { "en": "e.g. 2.3522", "fr": "ex. 2.3522" },
-      "required": true,
-      "default": 2.3522,
-      "min": -180,
-      "max": 180
-    },
-    {
-      "key": "unit",
-      "type": "select",
-      "label": { "en": "Temperature unit", "fr": "Unité de température" },
+      "key": "stations",
+      "type": "string",
       "required": false,
-      "default": "celsius",
+      "default": "",
+      "label": {
+        "en": "Stations",
+        "fr": "Stations",
+        "de": "Stationen",
+        "es": "Estaciones"
+      },
+      "description": {
+        "en": "Station ids or names, separated by commas (10 at most). An id is exact; a name takes the closest match.",
+        "fr": "Numéros ou noms de stations, séparés par des virgules (10 au plus). Un numéro est exact ; un nom prend la station la plus proche du texte.",
+        "de": "Kennungen oder Namen der Stationen, durch Kommas getrennt (höchstens 10). Eine Kennung ist eindeutig; ein Name nimmt die beste Übereinstimmung.",
+        "es": "Identificadores o nombres de estaciones, separados por comas (10 como máximo). Un identificador es exacto; un nombre toma la mejor coincidencia."
+      },
+      "placeholder": {
+        "en": "e.g. 9414290, Boston",
+        "fr": "ex. 9414290, Boston",
+        "de": "z. B. 9414290, Boston",
+        "es": "p. ej. 9414290, Boston"
+      }
+    },
+    {
+      "key": "units",
+      "type": "select",
+      "required": false,
+      "default": "metric",
+      "label": {
+        "en": "Units",
+        "fr": "Unités",
+        "de": "Einheiten",
+        "es": "Unidades"
+      },
+      "description": {
+        "en": "Of the heights and temperatures. After a change, click \"Update\" on the devices in the Discover tab.",
+        "fr": "Des hauteurs et des températures. Après un changement, cliquez sur « Mettre à jour » sur les appareils dans l’onglet Découverte.",
+        "de": "Der Höhen und Temperaturen. Klicke nach einer Änderung im Tab „Entdecken“ bei den Geräten auf „Aktualisieren“.",
+        "es": "De las alturas y temperaturas. Tras un cambio, pulse «Actualizar» en los dispositivos de la pestaña Descubrir."
+      },
       "options": [
-        { "value": "celsius", "label": { "en": "Celsius", "fr": "Celsius" } },
-        { "value": "fahrenheit", "label": { "en": "Fahrenheit", "fr": "Fahrenheit" } }
+        {
+          "value": "metric",
+          "label": {
+            "en": "Metres and °C",
+            "fr": "Mètres et °C",
+            "de": "Meter und °C",
+            "es": "Metros y °C"
+          }
+        },
+        {
+          "value": "imperial",
+          "label": {
+            "en": "Feet and °F",
+            "fr": "Pieds et °F",
+            "de": "Fuß und °F",
+            "es": "Pies y °F"
+          }
+        }
       ]
     },
     {
-      "key": "poll_frequency",
-      "type": "number",
-      "label": { "en": "Refresh interval (s)", "fr": "Intervalle de rafraîchissement (s)" },
-      "description": {
-        "en": "How often sensors are polled, in seconds (one minute minimum).",
-        "fr": "Fréquence d'interrogation des capteurs, en secondes (une minute minimum)."
-      },
+      "key": "alert_levels",
+      "type": "string",
       "required": false,
-      "default": 300,
-      "min": 60,
-      "max": 3600
+      "default": "",
+      "label": {
+        "en": "Alert levels of the high tides",
+        "fr": "Seuils d’alerte des pleines mers",
+        "de": "Warnpegel der Hochwasser",
+        "es": "Niveles de alerta de las pleamares"
+      },
+      "description": {
+        "en": "For the trigger \"High tide above the alert level\", above MLLW, in the units above: one level (2.1) or one per station (9414290=2.1; 8443970=3.6). Empty: the NOAA minor flood level, where the station has one.",
+        "fr": "Pour le déclencheur « Pleine mer au-dessus du seuil », au-dessus de MLLW, dans les unités ci-dessus : un seuil (2,1) ou un par station (9414290=2,1 ; 8443970=3,6). Vide : le seuil de crue mineure de la NOAA, si la station en a un.",
+        "de": "Für den Auslöser „Hochwasser über dem Warnpegel“, über MLLW, in den Einheiten oben: ein Pegel (2,1) oder einer pro Station (9414290=2,1; 8443970=3,6). Leer: der Pegel für leichte Überflutung der NOAA, falls die Station einen hat.",
+        "es": "Para el disparador «Pleamar por encima del nivel de alerta», sobre MLLW, en las unidades de arriba: un nivel (2,1) o uno por estación (9414290=2,1; 8443970=3,6). Vacío: el nivel de inundación menor de la NOAA, si la estación lo tiene."
+      },
+      "placeholder": {
+        "en": "e.g. 9414290=2.1",
+        "fr": "ex. 9414290=2,1",
+        "de": "z. B. 9414290=2,1",
+        "es": "p. ej. 9414290=2,1"
+      }
+    },
+    {
+      "key": "language",
+      "type": "select",
+      "required": false,
+      "default": "fr",
+      "label": {
+        "en": "Language of the texts",
+        "fr": "Langue des textes",
+        "de": "Sprache der Texte",
+        "es": "Idioma de los textos"
+      },
+      "description": {
+        "en": "Of the device and feature names (set when the devices are created) and of the texts sent to the scenes.",
+        "fr": "Des noms d’appareils et de fonctionnalités (fixés à la création des appareils) et des textes envoyés aux scènes.",
+        "de": "Der Geräte- und Funktionsnamen (beim Anlegen der Geräte festgelegt) und der Texte für die Szenen.",
+        "es": "De los nombres de dispositivos y funciones (fijados al crear los dispositivos) y de los textos enviados a las escenas."
+      },
+      "options": [
+        {
+          "value": "en",
+          "label": {
+            "en": "English",
+            "fr": "Anglais",
+            "de": "Englisch",
+            "es": "Inglés"
+          }
+        },
+        {
+          "value": "fr",
+          "label": {
+            "en": "French",
+            "fr": "Français",
+            "de": "Französisch",
+            "es": "Francés"
+          }
+        },
+        {
+          "value": "de",
+          "label": {
+            "en": "German",
+            "fr": "Allemand",
+            "de": "Deutsch",
+            "es": "Alemán"
+          }
+        },
+        {
+          "value": "es",
+          "label": {
+            "en": "Spanish",
+            "fr": "Espagnol",
+            "de": "Spanisch",
+            "es": "Español"
+          }
+        }
+      ]
     }
   ],
   "actions": [
     {
-      "key": "test_weather",
-      "label": { "en": "Test the weather provider", "fr": "Tester le fournisseur météo" },
-      "timeout_seconds": 30
-    },
-    {
-      "key": "identify",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
+      "key": "search_stations",
+      "label": {
+        "en": "Find stations",
+        "fr": "Chercher des stations",
+        "de": "Stationen suchen",
+        "es": "Buscar estaciones"
+      },
+      "description": {
+        "en": "Lists NOAA tide stations with their id, distance and kind: near your house, near a point, by name or by id.",
+        "fr": "Liste les stations de marée NOAA avec leur numéro, leur distance et leur type : près de votre maison, près d’un point, par nom ou par numéro.",
+        "de": "Listet NOAA-Gezeitenstationen mit Kennung, Entfernung und Art auf: nahe deinem Haus, nahe einem Punkt, nach Name oder Kennung.",
+        "es": "Enumera las estaciones de marea NOAA con su identificador, distancia y tipo: cerca de su casa, cerca de un punto, por nombre o por identificador."
+      },
+      "timeout_seconds": 60,
       "fields": [
         {
-          "key": "device",
-          "type": "select",
-          "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+          "key": "query",
+          "type": "string",
+          "required": false,
+          "label": {
+            "en": "What",
+            "fr": "Quoi",
+            "de": "Was",
+            "es": "Qué"
+          },
+          "description": {
+            "en": "Empty: near your house. Or a name (Boston), a state with it (Sausalito CA), latitude and longitude (37.8, -122.47) or an id.",
+            "fr": "Vide : près de votre maison. Ou un nom (Boston), avec l’État (Sausalito CA), une latitude et une longitude (37.8, -122.47) ou un numéro.",
+            "de": "Leer: nahe deinem Haus. Oder ein Name (Boston), mit Bundesstaat (Sausalito CA), Breiten- und Längengrad (37.8, -122.47) oder eine Kennung.",
+            "es": "Vacío: cerca de su casa. O un nombre (Boston), con el estado (Sausalito CA), latitud y longitud (37.8, -122.47) o un identificador."
+          },
+          "placeholder": {
+            "en": "e.g. Boston",
+            "fr": "ex. Boston",
+            "de": "z. B. Boston",
+            "es": "p. ej. Boston"
+          }
         }
       ]
     }
   ],
   "scene_triggers": [
     {
-      "key": "motion_detected",
-      "label": { "en": "Motion detected", "fr": "Mouvement détecté" },
+      "key": "tide_upcoming",
+      "label": {
+        "en": "Tide: high or low tide",
+        "fr": "Marée : pleine ou basse mer",
+        "de": "Gezeiten: Hoch- oder Niedrigwasser",
+        "es": "Marea: pleamar o bajamar"
+      },
       "description": {
-        "en": "A demo motion sensor saw a person or an animal move.",
-        "fr": "Un détecteur de démonstration a vu bouger une personne ou un animal."
+        "en": "At the time of a high or low tide of a station, or some time before.",
+        "fr": "À l’heure d’une pleine ou d’une basse mer d’une station, ou un peu avant.",
+        "de": "Zur Zeit eines Hoch- oder Niedrigwassers einer Station oder etwas vorher.",
+        "es": "A la hora de una pleamar o bajamar de una estación, o un poco antes."
       },
       "fields": [
         {
-          "key": "device",
+          "key": "station",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Sensor", "fr": "Détecteur" }
+          "required": true,
+          "label": {
+            "en": "Station",
+            "fr": "Station",
+            "de": "Station",
+            "es": "Estación"
+          }
         },
         {
-          "key": "target",
-          "type": "multi_select",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" },
+          "key": "tide",
+          "type": "select",
+          "required": false,
+          "label": {
+            "en": "Tide",
+            "fr": "Marée",
+            "de": "Gezeit",
+            "es": "Marea"
+          },
           "options": [
-            { "value": "person", "label": { "en": "Person", "fr": "Personne" } },
-            { "value": "animal", "label": { "en": "Animal", "fr": "Animal" } }
+            {
+              "value": "high",
+              "label": {
+                "en": "High tide",
+                "fr": "Pleine mer",
+                "de": "Hochwasser",
+                "es": "Pleamar"
+              }
+            },
+            {
+              "value": "low",
+              "label": {
+                "en": "Low tide",
+                "fr": "Basse mer",
+                "de": "Niedrigwasser",
+                "es": "Bajamar"
+              }
+            }
+          ]
+        },
+        {
+          "key": "minutes_before",
+          "type": "select",
+          "required": true,
+          "default": "0",
+          "label": {
+            "en": "When",
+            "fr": "Quand",
+            "de": "Wann",
+            "es": "Cuándo"
+          },
+          "options": [
+            {
+              "value": "0",
+              "label": {
+                "en": "At the time of the tide",
+                "fr": "À l'heure de la marée",
+                "de": "Zur Zeit der Gezeit",
+                "es": "A la hora de la marea"
+              }
+            },
+            {
+              "value": "15",
+              "label": {
+                "en": "15 min before",
+                "fr": "15 min avant",
+                "de": "15 Min. vorher",
+                "es": "15 min antes"
+              }
+            },
+            {
+              "value": "30",
+              "label": {
+                "en": "30 min before",
+                "fr": "30 min avant",
+                "de": "30 Min. vorher",
+                "es": "30 min antes"
+              }
+            },
+            {
+              "value": "45",
+              "label": {
+                "en": "45 min before",
+                "fr": "45 min avant",
+                "de": "45 Min. vorher",
+                "es": "45 min antes"
+              }
+            },
+            {
+              "value": "60",
+              "label": {
+                "en": "1 h before",
+                "fr": "1 h avant",
+                "de": "1 Std. vorher",
+                "es": "1 h antes"
+              }
+            },
+            {
+              "value": "90",
+              "label": {
+                "en": "90 min before",
+                "fr": "90 min avant",
+                "de": "90 Min. vorher",
+                "es": "90 min antes"
+              }
+            },
+            {
+              "value": "120",
+              "label": {
+                "en": "2 h before",
+                "fr": "2 h avant",
+                "de": "2 Std. vorher",
+                "es": "2 h antes"
+              }
+            },
+            {
+              "value": "180",
+              "label": {
+                "en": "3 h before",
+                "fr": "3 h avant",
+                "de": "3 Std. vorher",
+                "es": "3 h antes"
+              }
+            },
+            {
+              "value": "240",
+              "label": {
+                "en": "4 h before",
+                "fr": "4 h avant",
+                "de": "4 Std. vorher",
+                "es": "4 h antes"
+              }
+            },
+            {
+              "value": "360",
+              "label": {
+                "en": "6 h before",
+                "fr": "6 h avant",
+                "de": "6 Std. vorher",
+                "es": "6 h antes"
+              }
+            }
           ]
         }
       ],
       "variables": [
         {
-          "key": "target",
+          "key": "tide",
           "type": "string",
-          "label": { "en": "What moved", "fr": "Ce qui a bougé" }
+          "label": {
+            "en": "Tide (high or low)",
+            "fr": "Marée (high ou low)",
+            "de": "Gezeit (high oder low)",
+            "es": "Marea (high o low)"
+          }
+        },
+        {
+          "key": "station_name",
+          "type": "string",
+          "label": {
+            "en": "Station",
+            "fr": "Station",
+            "de": "Station",
+            "es": "Estación"
+          }
+        },
+        {
+          "key": "tide_time",
+          "type": "string",
+          "label": {
+            "en": "Time of the tide",
+            "fr": "Heure de la marée",
+            "de": "Uhrzeit der Gezeit",
+            "es": "Hora de la marea"
+          }
+        },
+        {
+          "key": "tide_datetime",
+          "type": "string",
+          "label": {
+            "en": "Date and time of the tide (ISO 8601)",
+            "fr": "Date et heure de la marée (ISO 8601)",
+            "de": "Datum und Uhrzeit der Gezeit (ISO 8601)",
+            "es": "Fecha y hora de la marea (ISO 8601)"
+          }
+        },
+        {
+          "key": "height",
+          "type": "number",
+          "label": {
+            "en": "Height (above MLLW)",
+            "fr": "Hauteur (au-dessus de MLLW)",
+            "de": "Höhe (über MLLW)",
+            "es": "Altura (sobre MLLW)"
+          }
+        },
+        {
+          "key": "unit",
+          "type": "string",
+          "label": {
+            "en": "Unit of the heights (m or ft)",
+            "fr": "Unité des hauteurs (m ou ft)",
+            "de": "Einheit der Höhen (m oder ft)",
+            "es": "Unidad de las alturas (m o ft)"
+          }
+        },
+        {
+          "key": "summary",
+          "type": "string",
+          "label": {
+            "en": "Sentence to send",
+            "fr": "Phrase à envoyer",
+            "de": "Satz zum Senden",
+            "es": "Frase para enviar"
+          }
+        }
+      ]
+    },
+    {
+      "key": "high_tide_above",
+      "label": {
+        "en": "Tide: high tide above the alert level",
+        "fr": "Marée : pleine mer au-dessus du seuil",
+        "de": "Gezeiten: Hochwasser über dem Warnpegel",
+        "es": "Marea: pleamar sobre el nivel de alerta"
+      },
+      "description": {
+        "en": "A predicted high tide reaches the alert level of the configuration (or the NOAA minor flood level): at its time or some time before.",
+        "fr": "Une pleine mer prédite atteint le seuil d’alerte de la configuration (ou le seuil de crue mineure de la NOAA) : à son heure ou un peu avant.",
+        "de": "Ein vorhergesagtes Hochwasser erreicht den Warnpegel der Konfiguration (oder den NOAA-Pegel für leichte Überflutung): zu seiner Zeit oder etwas vorher.",
+        "es": "Una pleamar prevista alcanza el nivel de alerta de la configuración (o el nivel de inundación menor de la NOAA): a su hora o un poco antes."
+      },
+      "fields": [
+        {
+          "key": "station",
+          "type": "select",
+          "source": "devices",
+          "required": true,
+          "label": {
+            "en": "Station",
+            "fr": "Station",
+            "de": "Station",
+            "es": "Estación"
+          }
+        },
+        {
+          "key": "minutes_before",
+          "type": "select",
+          "required": true,
+          "default": "60",
+          "label": {
+            "en": "When",
+            "fr": "Quand",
+            "de": "Wann",
+            "es": "Cuándo"
+          },
+          "options": [
+            {
+              "value": "0",
+              "label": {
+                "en": "At the time of the tide",
+                "fr": "À l'heure de la marée",
+                "de": "Zur Zeit der Gezeit",
+                "es": "A la hora de la marea"
+              }
+            },
+            {
+              "value": "30",
+              "label": {
+                "en": "30 min before",
+                "fr": "30 min avant",
+                "de": "30 Min. vorher",
+                "es": "30 min antes"
+              }
+            },
+            {
+              "value": "60",
+              "label": {
+                "en": "1 h before",
+                "fr": "1 h avant",
+                "de": "1 Std. vorher",
+                "es": "1 h antes"
+              }
+            },
+            {
+              "value": "120",
+              "label": {
+                "en": "2 h before",
+                "fr": "2 h avant",
+                "de": "2 Std. vorher",
+                "es": "2 h antes"
+              }
+            },
+            {
+              "value": "180",
+              "label": {
+                "en": "3 h before",
+                "fr": "3 h avant",
+                "de": "3 Std. vorher",
+                "es": "3 h antes"
+              }
+            },
+            {
+              "value": "360",
+              "label": {
+                "en": "6 h before",
+                "fr": "6 h avant",
+                "de": "6 Std. vorher",
+                "es": "6 h antes"
+              }
+            },
+            {
+              "value": "720",
+              "label": {
+                "en": "12 h before",
+                "fr": "12 h avant",
+                "de": "12 Std. vorher",
+                "es": "12 h antes"
+              }
+            },
+            {
+              "value": "1440",
+              "label": {
+                "en": "24 h before",
+                "fr": "24 h avant",
+                "de": "24 Std. vorher",
+                "es": "24 h antes"
+              }
+            }
+          ]
+        }
+      ],
+      "variables": [
+        {
+          "key": "station_name",
+          "type": "string",
+          "label": {
+            "en": "Station",
+            "fr": "Station",
+            "de": "Station",
+            "es": "Estación"
+          }
+        },
+        {
+          "key": "tide_time",
+          "type": "string",
+          "label": {
+            "en": "Time of the tide",
+            "fr": "Heure de la marée",
+            "de": "Uhrzeit der Gezeit",
+            "es": "Hora de la marea"
+          }
+        },
+        {
+          "key": "tide_datetime",
+          "type": "string",
+          "label": {
+            "en": "Date and time of the tide (ISO 8601)",
+            "fr": "Date et heure de la marée (ISO 8601)",
+            "de": "Datum und Uhrzeit der Gezeit (ISO 8601)",
+            "es": "Fecha y hora de la marea (ISO 8601)"
+          }
+        },
+        {
+          "key": "height",
+          "type": "number",
+          "label": {
+            "en": "Height (above MLLW)",
+            "fr": "Hauteur (au-dessus de MLLW)",
+            "de": "Höhe (über MLLW)",
+            "es": "Altura (sobre MLLW)"
+          }
+        },
+        {
+          "key": "unit",
+          "type": "string",
+          "label": {
+            "en": "Unit of the heights (m or ft)",
+            "fr": "Unité des hauteurs (m ou ft)",
+            "de": "Einheit der Höhen (m oder ft)",
+            "es": "Unidad de las alturas (m o ft)"
+          }
+        },
+        {
+          "key": "summary",
+          "type": "string",
+          "label": {
+            "en": "Sentence to send",
+            "fr": "Phrase à envoyer",
+            "de": "Satz zum Senden",
+            "es": "Frase para enviar"
+          }
+        },
+        {
+          "key": "alert_level",
+          "type": "number",
+          "label": {
+            "en": "Alert level",
+            "fr": "Seuil d’alerte",
+            "de": "Warnpegel",
+            "es": "Nivel de alerta"
+          }
         }
       ]
     }
   ],
   "scene_actions": [
     {
-      "key": "identify_device",
-      "label": { "en": "Identify a device", "fr": "Identifier un appareil" },
-      "description": {
-        "en": "Make a device signal itself (the demo light blinks).",
-        "fr": "Fait se signaler un appareil (la lampe de démonstration clignote)."
+      "key": "get_next_tide",
+      "label": {
+        "en": "Tide: get the next tide",
+        "fr": "Marée : obtenir la prochaine marée",
+        "de": "Gezeiten: nächste Gezeit abrufen",
+        "es": "Marea: obtener la próxima marea"
       },
-      "timeout_seconds": 15,
+      "description": {
+        "en": "Gives the next high or low tide of a station to the following actions (time, height, sentence).",
+        "fr": "Donne aux actions suivantes la prochaine pleine ou basse mer d’une station (heure, hauteur, phrase).",
+        "de": "Gibt den folgenden Aktionen das nächste Hoch- oder Niedrigwasser einer Station (Uhrzeit, Höhe, Satz).",
+        "es": "Da a las acciones siguientes la próxima pleamar o bajamar de una estación (hora, altura, frase)."
+      },
+      "timeout_seconds": 10,
       "fields": [
         {
-          "key": "device",
+          "key": "station",
           "type": "select",
           "source": "devices",
-          "label": { "en": "Device", "fr": "Appareil" },
-          "required": true
+          "required": true,
+          "label": {
+            "en": "Station",
+            "fr": "Station",
+            "de": "Station",
+            "es": "Estación"
+          }
+        },
+        {
+          "key": "tide",
+          "type": "select",
+          "required": false,
+          "default": "any",
+          "label": {
+            "en": "Tide",
+            "fr": "Marée",
+            "de": "Gezeit",
+            "es": "Marea"
+          },
+          "options": [
+            {
+              "value": "any",
+              "label": {
+                "en": "High or low",
+                "fr": "Pleine ou basse",
+                "de": "Hoch oder niedrig",
+                "es": "Pleamar o bajamar"
+              }
+            },
+            {
+              "value": "high",
+              "label": {
+                "en": "High tide",
+                "fr": "Pleine mer",
+                "de": "Hochwasser",
+                "es": "Pleamar"
+              }
+            },
+            {
+              "value": "low",
+              "label": {
+                "en": "Low tide",
+                "fr": "Basse mer",
+                "de": "Niedrigwasser",
+                "es": "Bajamar"
+              }
+            }
+          ]
         }
       ],
       "outputs": [
         {
-          "key": "signalled",
-          "type": "boolean",
-          "label": { "en": "Device signalled", "fr": "Appareil signalé" }
+          "key": "tide",
+          "type": "string",
+          "label": {
+            "en": "Tide (high or low)",
+            "fr": "Marée (high ou low)",
+            "de": "Gezeit (high oder low)",
+            "es": "Marea (high o low)"
+          }
+        },
+        {
+          "key": "tide_time",
+          "type": "string",
+          "label": {
+            "en": "Time of the tide",
+            "fr": "Heure de la marée",
+            "de": "Uhrzeit der Gezeit",
+            "es": "Hora de la marea"
+          }
+        },
+        {
+          "key": "tide_datetime",
+          "type": "string",
+          "label": {
+            "en": "Date and time of the tide (ISO 8601)",
+            "fr": "Date et heure de la marée (ISO 8601)",
+            "de": "Datum und Uhrzeit der Gezeit (ISO 8601)",
+            "es": "Fecha y hora de la marea (ISO 8601)"
+          }
+        },
+        {
+          "key": "height",
+          "type": "number",
+          "label": {
+            "en": "Height (above MLLW)",
+            "fr": "Hauteur (au-dessus de MLLW)",
+            "de": "Höhe (über MLLW)",
+            "es": "Altura (sobre MLLW)"
+          }
+        },
+        {
+          "key": "unit",
+          "type": "string",
+          "label": {
+            "en": "Unit of the heights (m or ft)",
+            "fr": "Unité des hauteurs (m ou ft)",
+            "de": "Einheit der Höhen (m oder ft)",
+            "es": "Unidad de las alturas (m o ft)"
+          }
+        },
+        {
+          "key": "minutes",
+          "type": "number",
+          "label": {
+            "en": "Minutes until the tide",
+            "fr": "Minutes avant la marée",
+            "de": "Minuten bis zur Gezeit",
+            "es": "Minutos hasta la marea"
+          }
+        },
+        {
+          "key": "level_now",
+          "type": "number",
+          "label": {
+            "en": "Predicted level now (-1 if unknown)",
+            "fr": "Hauteur prédite maintenant (-1 si inconnue)",
+            "de": "Vorhergesagter Stand jetzt (-1, wenn unbekannt)",
+            "es": "Nivel previsto ahora (-1 si se desconoce)"
+          }
+        },
+        {
+          "key": "trend",
+          "type": "string",
+          "label": {
+            "en": "Trend (rising or falling)",
+            "fr": "Tendance (rising ou falling)",
+            "de": "Tendenz (rising oder falling)",
+            "es": "Tendencia (rising o falling)"
+          }
+        },
+        {
+          "key": "summary",
+          "type": "string",
+          "label": {
+            "en": "Sentence to send",
+            "fr": "Phrase à envoyer",
+            "de": "Satz zum Senden",
+            "es": "Frase para enviar"
+          }
         }
       ]
     }
   ],
   "widgets": [
     {
-      "key": "demo_status",
-      "label": { "en": "Demo status", "fr": "État de la démo" },
-      "description": {
-        "en": "Live temperature and plug power, plug connection and observed location.",
-        "fr": "Température et puissance en direct, connexion de la prise, position observée."
+      "key": "next_tides",
+      "label": {
+        "en": "Next tides",
+        "fr": "Prochaines marées",
+        "de": "Nächste Gezeiten",
+        "es": "Próximas mareas"
       },
-      "icon": "activity",
-      "action_timeout_seconds": 15
+      "description": {
+        "en": "Tide curve of a station, its next high and low tides and live levels.",
+        "fr": "Courbe de marée d’une station, ses prochaines pleines et basses mers.",
+        "de": "Gezeitenkurve einer Station, nächstes Hoch- und Niedrigwasser.",
+        "es": "Curva de marea de una estación, sus próximas pleamares y bajamares."
+      },
+      "icon": "anchor",
+      "settings": [
+        {
+          "key": "station",
+          "type": "select",
+          "source": "devices",
+          "required": false,
+          "label": {
+            "en": "Station",
+            "fr": "Station",
+            "de": "Station",
+            "es": "Estación"
+          },
+          "description": {
+            "en": "Leave empty for the first station created.",
+            "fr": "Laissez vide pour la première station créée.",
+            "de": "Leer lassen für die zuerst angelegte Station.",
+            "es": "Déjelo vacío para la primera estación creada."
+          }
+        }
+      ]
     }
   ]
 }
